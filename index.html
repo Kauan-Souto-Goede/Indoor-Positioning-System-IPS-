@@ -2,149 +2,75 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Radar Wi-Fi - Posicionamento em Tempo Real</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
-  
+  <title>Radar Wi-Fi Indoor - View</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #f4f4f9; }
-    
+    body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f9; padding: 20px; margin: 0; }
     #map-container {
-      position: relative;
-      width: 500px;
-      height: 560px; /* Ajustado para a proporção da nova planta renderizada */
-      margin: 0 auto;
-      border: 4px solid #2c3e50;
-      border-radius: 12px;
-      overflow: hidden;
-      background-color: #fff;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      position: relative; width: 500px; height: 560px; margin: 0 auto;
+      border: 4px solid #2c3e50; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2); background-color: #fff;
     }
-
     #floorplan { width: 100%; height: 100%; object-fit: cover; }
-
     #dot {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      background-color: #e74c3c;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      transition: all 0.8s ease-in-out;
-      box-shadow: 0 0 15px #e74c3c;
-      z-index: 10;
+      position: absolute; width: 22px; height: 22px; background-color: #e74c3c;
+      border: 2px solid #fff; border-radius: 50%; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); transition: all 0.8s ease-in-out;
+      box-shadow: 0 0 15px #e74c3c; z-index: 10;
     }
-
     #status-badge {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(44, 62, 80, 0.9);
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 14px;
-      z-index: 20;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      position: absolute; top: 15px; left: 15px; background: rgba(44, 62, 80, 0.9);
+      color: #fff; padding: 8px 16px; border-radius: 20px; font-weight: bold;
+      font-size: 14px; z-index: 20;
     }
   </style>
 </head>
 <body>
 
-  <h2>Sistema de Posicionamento Indoor - ESP32</h2>
-  <p>Status da Nuvem: <span id="mqtt-status" style="color: orange; font-weight: bold;">Conectando...</span></p>
+  <h2>Sistema de Posicionamento Indoor</h2>
+  <p>Status: <span id="mqtt-status" style="color: orange; font-weight: bold;">Conectando...</span></p>
   
   <div id="map-container">
-    <img id="floorplan" src="Planta.png" alt="Planta Baixa">
-    <div id="status-badge">Aguardando sinal do dispositivo...</div>
+    <img id="floorplan" src="COLE_AQUI_O_LINK_DA_IMAGEM" alt="Planta Baixa">
+    <div id="status-badge">Aguardando motor de processamento...</div>
     <div id="dot"></div>
   </div>
 
   <script>
-    // =========================================================================
-    // 1. CONFIGURAÇÃO DO BROKER MQTT (HIVEMQ EM NUVEM)
-    // =========================================================================
     const MQTT_BROKER = "broker.hivemq.com";
-    const MQTT_PORT = 8884; // Porta obrigatoria para WebSockets com SSL (HTTPS)
-    const MQTT_PATH = "/mqtt";
-    // Altere o topico abaixo para garantir que seja 100% unico e ninguem interfira
-    const MQTT_TOPIC = "ufsc/engenharia/radar/dispositivo_01"; 
+    const MQTT_PORT = 8884;
+    const MQTT_TOPIC = "ufsc/engenharia/radar/localizacao_final"; // Escuta a resposta mastigada
 
-    // O seu mapa de sinais calibrado em porcentagem (%)
-    const mapaDeSinais = {
-      "Poltrona Sala": { x: 16, y: 18, assinaturas: { "104121313198": -65, "44896D384D2F": -79, "E4BFFAF14A78": -80, "94988F312107": -82, "14360E951B91": -86, "BCBD84F0611F": -86 } },
-      "Baú Sala": { x: 39, y: 23, assinaturas: { "104121313198": -65, "E4BFFAF14A78": -76, "44896D384D2F": -78, "BCBD84F0611F": -84, "14360E951B91": -90 } },
-      "Mesa Cozinha": { x: 68, y: 21, assinaturas: { "104121313198": -54, "E8458BB81440": -80, "E8458B4A5600": -86, "E4BFFAF14A78": -91 } },
-      "Banheiro Pais": { x: 26, y: 35, assinaturas: { "104121313198": -57, "E4BFFAF14A78": -77, "94988F312107": -86, "44896D384D2F": -89 } },
-      "Cama Pais": { x: 26, y: 48, assinaturas: { "104121313198": -48, "44896D384D2F": -84, "209A7DBB0DB2": -87, "94988F312107": -87 } },
-      "Mesa Jantar": { x: 68, y: 54, assinaturas: { "104121313198": -37, "44896D834E6F": -86, "44896D384D2F": -90, "E4BFFAF14A78": -90 } },
-      "Corredor": { x: 48, y: 65, assinaturas: { "104121313198": -45, "44896D384D2F": -79, "44896D834E6F": -85, "BCBD84F0611F": -87 } },
-      "Banheiro": { x: 71, y: 65, assinaturas: { "104121313198": -55, "44896D834E6F": -79, "E8458BB81440": -86, "E8458B4A5600": -91 } },
-      "Camas Quarto Frente": { x: 20, y: 75, assinaturas: { "104121313198": -68, "44896D384D2F": -76, "78E9CF055AFF": -80, "209A7DBB0DB2": -82 } },
-      "Mesa Kleber Jr": { x: 45, y: 89, assinaturas: { "104121313198": -55, "E8458BB81440": -75, "44896D834E6F": -82, "209A7DBB0DB2": -85 } },
-      "Cama Kauan": { x: 76, y: 82, assinaturas: { "104121313198": -59, "E8458BB81440": -66, "44896D834E6F": -68, "E8458B4A5600": -81 } },
-      "Mesa Kauan": { x: 81, y: 91, assinaturas: { "104121313198": -64, "E8458BB81440": -68, "44896D834E6F": -73, "E8458B4A5600": -79 } }
-    };
-
-    // Algoritmo de Distancia Euclidiana
-    function processarLocalizacao(redesAtuais) {
-      let menorDistancia = Infinity;
-      let localEstimado = "Desconhecido";
-
-      for (const [comodo, dados] of Object.entries(mapaDeSinais)) {
-        let somaQuadrados = 0;
-        for (const [mac, rssiCalibrado] of Object.entries(dados.assinaturas)) {
-          let rssiAtual = redesAtuais[mac] !== undefined ? redesAtuais[mac] : -100;
-          somaQuadrados += Math.pow(rssiAtual - rssiCalibrado, 2);
-        }
-        let distancia = Math.sqrt(somaQuadrados);
-        if (distancia < menorDistancia) {
-          menorDistancia = distancia;
-          localEstimado = comodo;
-        }
-      }
-      return localEstimado;
-    }
-
-    // Inicializa conexao MQTT
     const clientId = "web_client_" + Math.random().toString(16).substr(2, 8);
-    const client = new Paho.MQTT.Client(MQTT_BROKER, Number(MQTT_PORT), MQTT_PATH, clientId);
+    const client = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, "/mqtt", clientId);
 
-    client.onConnectionLost = (responseObject) => {
-      document.getElementById("mqtt-status").innerText = "Desconectado! Tentando voltar...";
+    client.onConnectionLost = () => {
+      document.getElementById("mqtt-status").innerText = "Desconectado!";
       document.getElementById("mqtt-status").style.color = "red";
       setTimeout(conectarBroker, 3000);
     };
 
     client.onMessageArrived = (message) => {
       try {
-        // Converte o pacote recebido de volta para Objeto JavaScript
-        const leiturasDeRede = JSON.parse(message.payloadString);
-        let local = processarLocalizacao(leiturasDeRede);
+        // Recebe o JSON já processado pelo seu Python: {"local": "Sala", "x": 39, "y": 23}
+        const dados = JSON.parse(message.payloadString);
         
-        // Atualiza a bolinha vermelha na tela usando as coordenadas em %
-        document.getElementById("status-badge").innerText = `Local atual: ${local}`;
-        document.getElementById("dot").style.left = mapaDeSinais[local].x + "%";
-        document.getElementById("dot").style.top = mapaDeSinais[local].y + "%";
+        document.getElementById("status-badge").innerText = `Local: ${dados.local}`;
+        document.getElementById("dot").style.left = dados.x + "%";
+        document.getElementById("dot").style.top = dados.y + "%";
       } catch (e) {
-        console.error("Erro ao processar o payload JSON:", e);
+        console.error("Erro:", e);
       }
     };
 
     function conectarBroker() {
       client.connect({
         onSuccess: () => {
-          document.getElementById("mqtt-status").innerText = "Online (Nuvem)";
+          document.getElementById("mqtt-status").innerText = "Online";
           document.getElementById("mqtt-status").style.color = "green";
           client.subscribe(MQTT_TOPIC);
         },
-        onFailure: () => {
-          setTimeout(conectarBroker, 5000);
-        },
-        useSSL: true // Obrigatorio para rodar dentro do GitHub Pages de forma segura
+        useSSL: true
       });
     }
 
