@@ -1,0 +1,209 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #drop-zone { width: 100%; min-height: 160px; border: 1.5px dashed var(--color-border-secondary); border-radius: var(--border-radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: background 0.15s; background: var(--color-background-secondary); margin-bottom: 12px; }
+  #drop-zone:hover, #drop-zone.drag-over { background: var(--color-background-tertiary); }
+  #drop-zone p { font-size: 13px; color: var(--color-text-secondary); text-align: center; }
+  #drop-zone i { font-size: 32px; color: var(--color-text-tertiary); }
+  #file-input { display: none; }
+  #toolbar { display: none; align-items: center; gap: 8px; padding: 0 0 10px; flex-wrap: wrap; }
+  #room-input { flex: 1; min-width: 140px; font-size: 14px; padding: 6px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); }
+  #add-btn { font-size: 13px; padding: 6px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+  #add-btn:hover { background: var(--color-background-secondary); }
+  #hint { font-size: 12px; color: var(--color-text-tertiary); padding: 0 0 8px; display: none; }
+  #canvas-wrap { position: relative; width: 100%; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); overflow: hidden; display: none; }
+  #plant-img { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+  .pin { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .pin-dot { width: 10px; height: 10px; border-radius: 50%; background: #e24b4a; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+  .pin-label { font-size: 10px; font-weight: 500; color: #fff; background: rgba(20,20,20,0.78); padding: 2px 6px; border-radius: 3px; margin-bottom: 3px; white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+  #rooms-list { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .room-tag { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border: 0.5px solid var(--color-border-tertiary); border-radius: 99px; background: var(--color-background-secondary); color: var(--color-text-secondary); cursor: pointer; }
+  .room-tag.placed { border-color: #e24b4a66; color: var(--color-text-primary); }
+  .room-tag.active { border-color: #378add; background: var(--color-background-info, #e6f1fb); color: var(--color-text-primary); }
+  .rm-x { cursor: pointer; color: var(--color-text-tertiary); font-size: 15px; line-height: 1; margin-left: 2px; }
+  .rm-x:hover { color: var(--color-text-primary); }
+  #json-area { margin: 14px 0 0; display: none; }
+  #json-out { width: 100%; min-height: 80px; font-family: var(--font-mono); font-size: 11px; padding: 8px 10px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-primary); resize: vertical; }
+  #copy-btn { margin: 6px 0 0; font-size: 13px; padding: 6px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); cursor: pointer; }
+  #copy-btn:hover { background: var(--color-background-secondary); }
+  #status { font-size: 12px; color: var(--color-text-success, #3b6d11); margin-left: 8px; }
+  #sel-hint { font-size: 12px; padding: 4px 10px; background: var(--color-background-info, #e6f1fb); color: var(--color-text-info, #185fa5); border-radius: var(--border-radius-md); display: none; }
+  #reset-img { font-size: 12px; color: var(--color-text-tertiary); cursor: pointer; text-decoration: underline; margin-left: auto; }
+  #reset-img:hover { color: var(--color-text-primary); }
+</style>
+
+<h2 class="sr-only">Ferramenta para gerar coordenadas clicando na planta baixa</h2>
+
+<div id="drop-zone">
+  <i class="ti ti-upload" aria-hidden="true"></i>
+  <p><strong>Clique aqui</strong> ou arraste a foto da planta</p>
+  <p style="font-size:11px;">PNG, JPG, WEBP</p>
+  <input type="file" id="file-input" accept="image/*" />
+</div>
+
+<div id="toolbar">
+  <input id="room-input" type="text" placeholder="Nome do cômodo (ex: Sala)" />
+  <button id="add-btn">+ Adicionar</button>
+  <span id="sel-hint"></span>
+  <span id="reset-img">trocar foto</span>
+</div>
+<p id="hint">Selecione um cômodo na lista e clique no centro dele na planta</p>
+
+<div id="canvas-wrap">
+  <img id="plant-img" alt="Planta baixa" />
+  <div id="overlay"></div>
+</div>
+
+<div id="rooms-list"></div>
+
+<div id="json-area">
+  <textarea id="json-out" readonly placeholder="JSON gerado aqui..."></textarea>
+  <div style="display:flex;align-items:center;">
+    <button id="copy-btn"><i class="ti ti-copy" aria-hidden="true"></i> Copiar JSON</button>
+    <span id="status"></span>
+  </div>
+</div>
+
+<script>
+const rooms = {};
+let pendingRoom = null;
+
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const toolbar    = document.getElementById('toolbar');
+const hint       = document.getElementById('hint');
+const canvasWrap = document.getElementById('canvas-wrap');
+const img        = document.getElementById('plant-img');
+const overlay    = document.getElementById('overlay');
+const roomsList  = document.getElementById('rooms-list');
+const jsonArea   = document.getElementById('json-area');
+const jsonOut    = document.getElementById('json-out');
+const selHint    = document.getElementById('sel-hint');
+const statusEl   = document.getElementById('status');
+
+function loadImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  img.src = url;
+  dropZone.style.display = 'none';
+  toolbar.style.display = 'flex';
+  hint.style.display = 'block';
+  canvasWrap.style.display = 'block';
+
+  const presets = ['Sala', 'Cozinha', 'Quarto Pais', 'Banheiro Pais', 'Quarto Visitas', 'Quarto Kauan', 'Banheiro', 'Sala de Jantar', 'Corredor'];
+  presets.forEach(r => { if (rooms[r] === undefined) rooms[r] = null; });
+  renderTags();
+  selectNext();
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => loadImage(fileInput.files[0]));
+
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  loadImage(e.dataTransfer.files[0]);
+});
+
+document.getElementById('reset-img').addEventListener('click', () => {
+  dropZone.style.display = 'flex';
+  toolbar.style.display = 'none';
+  hint.style.display = 'none';
+  canvasWrap.style.display = 'none';
+  jsonArea.style.display = 'none';
+  overlay.querySelectorAll('.pin').forEach(p => p.remove());
+  for (const k in rooms) delete rooms[k];
+  pendingRoom = null;
+  roomsList.innerHTML = '';
+  jsonOut.value = '';
+});
+
+function selectRoom(name) {
+  pendingRoom = name;
+  selHint.style.display = 'inline-block';
+  selHint.textContent = `Clique na planta: "${name}"`;
+  overlay.style.cursor = 'crosshair';
+  renderTags();
+}
+
+function selectNext() {
+  const next = Object.entries(rooms).find(([_, p]) => p === null);
+  if (next) selectRoom(next[0]);
+  else { pendingRoom = null; selHint.style.display = 'none'; overlay.style.cursor = 'default'; renderTags(); }
+}
+
+function renderTags() {
+  roomsList.innerHTML = '';
+  for (const [name, pos] of Object.entries(rooms)) {
+    const tag = document.createElement('div');
+    const isActive = pendingRoom === name;
+    tag.className = 'room-tag' + (pos ? ' placed' : '') + (isActive ? ' active' : '');
+    tag.innerHTML = `<span>${pos ? '●' : '○'}</span> ${name} <span class="rm-x" title="Remover">×</span>`;
+    if (!isActive) {
+      tag.addEventListener('click', (e) => { if (e.target.classList.contains('rm-x')) return; selectRoom(name); });
+    }
+    tag.querySelector('.rm-x').addEventListener('click', (e) => {
+      e.stopPropagation();
+      delete rooms[name];
+      document.getElementById('pin-' + name)?.remove();
+      if (pendingRoom === name) { pendingRoom = null; selectNext(); }
+      renderTags();
+      updateJSON();
+    });
+    roomsList.appendChild(tag);
+  }
+}
+
+overlay.addEventListener('click', (e) => {
+  if (!pendingRoom) return;
+  const rect = overlay.getBoundingClientRect();
+  const px = Math.round((e.clientX - rect.left) / rect.width * 100);
+  const py = Math.round((e.clientY - rect.top) / rect.height * 100);
+  rooms[pendingRoom] = { x: px, y: py };
+
+  document.getElementById('pin-' + pendingRoom)?.remove();
+  const pin = document.createElement('div');
+  pin.className = 'pin';
+  pin.id = 'pin-' + pendingRoom;
+  pin.style.left = px + '%';
+  pin.style.top = py + '%';
+  pin.innerHTML = `<div class="pin-label">${pendingRoom}</div><div class="pin-dot"></div>`;
+  overlay.appendChild(pin);
+
+  selectNext();
+  updateJSON();
+});
+
+function updateJSON() {
+  const placed = Object.entries(rooms).filter(([_, p]) => p !== null);
+  if (!placed.length) { jsonOut.value = ''; jsonArea.style.display = 'none'; return; }
+  const obj = {};
+  for (const [name, pos] of placed) obj[name] = { x: pos.x, y: pos.y };
+  jsonOut.value = JSON.stringify(obj, null, 2);
+  jsonArea.style.display = 'block';
+}
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  const v = document.getElementById('room-input').value.trim();
+  if (!v || rooms[v] !== undefined) return;
+  rooms[v] = null;
+  document.getElementById('room-input').value = '';
+  renderTags();
+  selectRoom(v);
+});
+
+document.getElementById('room-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('add-btn').click();
+});
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  if (!jsonOut.value) return;
+  navigator.clipboard.writeText(jsonOut.value).then(() => {
+    statusEl.textContent = 'Copiado!';
+    setTimeout(() => statusEl.textContent = '', 2000);
+  });
+});
+</script>
