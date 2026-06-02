@@ -1,3 +1,8 @@
+🇧🇷 Português | 🇺🇸 English
+
+- [Português](#português)
+- [English](#english)
+
 <div align="center">
 
 <img src="Image/Planta.png" alt="Planta Baixa" width="420" style="border-radius:12px;opacity:.85"/>
@@ -85,68 +90,12 @@ Indoor-Positioning-System-IPS/
 
 ---
 
-## Início rápido
-
-### Pré-requisitos
-
-| Ferramenta | Versão | Link |
-|-----------|--------|------|
-| VS Code + PlatformIO | qualquer | [platformio.org](https://platformio.org) |
-| Python | 3.9+ | [python.org](https://python.org) |
-| ESP32 | — | com acesso Wi-Fi |
-
-### 1 · Mapear o ambiente
-
-```bash
-cd "Backend Server"
-pip install -r requirements.txt
-python gerador_de_coordenadas.py
-```
-
-Carregue a planta baixa, clique no centro de cada cômodo e salve o `coordenadas.json`.
-
-### 2 · Calibrar o ESP32
-
-Edite as credenciais Wi-Fi em `ESP32/src/calibracao.cpp`:
-
-```cpp
-// Altere apenas estas duas linhas:
-WiFi.begin("sua_rede", "sua_senha");
-```
-
-Depois grave e calibre:
-
-```bash
-cd ESP32
-pio run -e calibracao --target upload   # grava o firmware de calibração
-pio device monitor                       # siga as instruções no terminal
-```
-
-> Veja o guia detalhado em [`docs/CALIBRACAO.md`](docs/CALIBRACAO.md)
-
-### 3 · Gravar o firmware de operação
-
-Edite as credenciais em `ESP32/src/main.cpp` e grave:
-
-```bash
-pio run -e producao --target upload
-```
-
-### 4 · Iniciar o backend
-
-```bash
-cd "Backend Server"
-python backendIPSwifi.py
-```
-
-O backend recebe a calibração automaticamente do ESP32 via MQTT no boot e começa a calcular a localização.
-
-### 5 · Abrir o dashboard
-
-Abra `index.html` no browser e selecione **Versão 02** (dashboard atual).
-Na interface, faça upload da sua planta baixa e do `coordenadas.json`.
-
----
+## Utilização
+1. Gere o mapa de coordenadas utilizando gerador_de_coordenadas.py.
+2. Execute o firmware de calibração para coletar as assinaturas Wi-Fi do ambiente.
+3. Grave o firmware principal no ESP32.
+4. Execute backendIPSwifi.py.
+5. Abra index.html e selecione a interface desejada.
 
 ## Tópicos MQTT
 
