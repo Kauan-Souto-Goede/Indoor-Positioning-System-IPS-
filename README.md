@@ -1,73 +1,73 @@
 # 📍 Indoor Positioning System (IPS) via Wi-Fi Fingerprinting
 
-Um sistema completo de Posicionamento em Ambientes Internos (Indoor Positioning System) focado em rastreamento através de sinais Wi-Fi (RSSI e MAC Address). 
+A complete Indoor Positioning System (IPS) focused on tracking through Wi-Fi signals (RSSI and MAC Address). 
 
-Este projeto resolve o problema de localização em ambientes fechados (onde o GPS não é efetivo) utilizando a técnica de *Fingerprinting*. O sistema é modular, dividido em firmware de coleta, um servidor backend local para cálculos matemáticos, uma interface web de monitoramento em tempo real e uma ferramenta auxiliar para mapeamento do ambiente.
-
----
-
-## 🧠 Como o sistema funciona (Arquitetura)
-
-O fluxo de dados do projeto ocorre em tempo real, utilizando **MQTT** como protocolo central de comunicação. A arquitetura é dividida em quatro pilares fundamentais:
-
-### 1. O Hardware (ESP32 - PlatformIO / C++)
-O microcontrolador atua como o "sensor" do ambiente. O firmware foi dividido em duas etapas para garantir a eficiência e organização do sistema:
-* **Modo de Calibração (Fingerprint):** Antes de o sistema rodar oficialmente, este código varre o ambiente coletando a força do sinal (RSSI) e o MAC Address dos roteadores/beacons em pontos conhecidos. Ele processa e **salva esses dados apenas na memória interna** do ESP (SPIFFS/LittleFS).
-* **Modo Principal (Tracking):** É o código de operação contínua. Logo ao ser iniciado, ele resgata a calibração final salva na memória e a envia via MQTT para o servidor. Em seguida, ele passa a ler continuamente o RSSI do momento e transmitir esses dados brutos para cálculo.
-
-### 2. O Servidor Backend (Python)
-É o "cérebro" do sistema que recebe os dados do ESP32 via MQTT, executa os cálculos de trilateração/probabilidade e publica as coordenadas (X, Y) calculadas para o frontend. 
-* 🔒 **Foco em Privacidade:** O backend foi projetado para rodar **exclusivamente de forma local** (offline/fora da nuvem). Essa é uma medida de segurança rigorosa para evitar que os MAC Addresses da sua rede, de dispositivos vizinhos e de equipamentos ao redor fiquem expostos na internet.
-* **Leitura Espacial:** O servidor consome o arquivo `coordenadas.json` (gerado pelo mapeador) para entender a disposição física do ambiente antes de calcular a posição final.
-
-### 3. A Interface Web (HTML / CSS / JS)
-É a "parte bonita" do projeto. Um site estático (hospedado em HTTPS via GitHub Pages ou rodando localmente) que se conecta ao broker MQTT via WebSockets.
-* **Upload Dinâmico da Planta Baixa:** Para utilizar a interface, é necessário ter uma imagem da sua planta baixa (PNG, JPG, etc.). Por flexibilidade, a imagem não fica presa no código-fonte; a própria interface permite que você faça o upload da imagem da planta e do arquivo de coordenadas no navegador toda vez que for utilizar a ferramenta.
-
-### 4. O Mapeador de Planta Baixa (Ferramenta Auxiliar em Python)
-Uma aplicação desktop com interface gráfica (usando `Tkinter` e `Pillow`) desenvolvida para gerar as coordenadas do seu ambiente. O usuário carrega a imagem da planta baixa, clica nos cômodos para definir as localizações físicas e o programa gera automaticamente o arquivo JSON de coordenadas.
+This project solves the problem of indoor localization (where standard GPS is not effective) using the *Fingerprinting* technique. The system is modular, divided into data collection firmware, a local backend server for mathematical calculations, a real-time monitoring web interface, and an auxiliary tool for environment mapping.
 
 ---
 
-## 🚀 Como reproduzir o projeto (Getting Started)
+## 🧠 How the system works (Architecture)
 
-Siga a ordem abaixo para configurar o ecossistema completo na sua máquina.
+The project's data flow occurs in real-time, using **MQTT** as the central communication protocol. The architecture is divided into four fundamental pillars:
 
-### Pré-requisitos
-* Um microcontrolador **ESP32**.
-* [VS Code](https://code.visualstudio.com/) com a extensão **PlatformIO**.
-* **Python 3.x** instalado.
-* Um Broker MQTT configurado na sua rede local (ex: Mosquitto).
-* Uma imagem (foto/arquivo) da sua planta baixa.
+### 1. The Hardware (ESP32 - PlatformIO / C++)
+The microcontroller acts as the "sensor" of the environment. The firmware was divided into two stages to ensure system efficiency and organization:
+* **Calibration Mode (Fingerprint):** Before the system officially runs, this code scans the environment, collecting signal strength (RSSI) and MAC Addresses of routers/beacons at known points. It processes and **saves this data only to the internal memory** of the ESP (SPIFFS/LittleFS).
+* **Main Mode (Tracking):** This is the continuous operation code. Right upon startup, it retrieves the final calibration saved in memory and sends it via MQTT to the server. Then, it continuously reads the current RSSI and transmits this raw data for calculation.
 
-### Passo 1: Mapear o Ambiente
-1. Navegue até a pasta da ferramenta auxiliar de mapeamento.
-2. Instale a dependência de imagem: `pip install Pillow`
-3. Rode o programa: `python gerador_de_coordenadas.py`
-4. Carregue a imagem da sua planta baixa, clique nos locais mapeados e clique em **Salvar coordenadas.json**.
-5. **Atenção:** Mova ou certifique-se de que este arquivo `coordenadas.json` seja salvo **na mesma pasta do Servidor Backend em Python**, pois ele precisará ler esse arquivo para funcionar corretamente.
+### 2. The Backend Server (Python)
+This is the "brain" of the system. It receives data from the ESP32 via MQTT, executes trilateration/probability calculations, and publishes the calculated coordinates (X, Y) to the frontend. 
+* 🔒 **Privacy Focus:** The backend was designed to run **exclusively locally** (offline/off-cloud). This is a strict security measure to prevent the MAC Addresses of your network, neighboring devices, and surrounding equipment from being exposed on the internet.
+* **Spatial Reading:** The server consumes the `coordenadas.json` file (generated by the mapper) to understand the physical layout of the environment before calculating the final position.
 
-### Passo 2: Calibrar o ESP32 (Fingerprinting)
-1. Abra a pasta do firmware no VS Code (PlatformIO).
-2. Configure as credenciais de Wi-Fi e do seu Broker MQTT local no arquivo de configuração do firmware.
-3. Faça o upload do **Código de Calibração** para o ESP32.
-4. Posicione o ESP32 nos cômodos físicos correspondentes ao seu mapa e deixe-o coletar as amostras de sinal. Ele salvará a calibração internamente na placa.
+### 3. The Web Interface (HTML / CSS / JS)
+The "pretty part" of the project. A static website (hosted on HTTPS via GitHub Pages or running locally) that connects to the MQTT broker via WebSockets.
+* **Dynamic Floor Plan Upload:** To use the interface, you must have an image of your floor plan (PNG, JPG, etc.). For flexibility, the image is not hardcoded; the interface itself allows you to upload the floor plan image and the coordinates file directly in the browser every time you use the tool.
 
-### Passo 3: Iniciar o Backend Seguro (Local)
-1. Navegue até a pasta do servidor Python (onde você colocou o `coordenadas.json` no Passo 1).
-2. Instale a biblioteca do MQTT e dependências matemáticas: `pip install paho-mqtt numpy` (ajuste conforme as bibliotecas que estiver usando).
-3. Execute o servidor: `python backend_server.py`.
-4. Mantenha o terminal aberto. Ele rodará localmente, lendo suas coordenadas e aguardando os dados do ESP32 para calcular as posições sem expor seus MACs na internet.
-
-### Passo 4: Rodar o Tracker e Monitorar na Web
-1. Faça o upload do **Código Principal** (Tracker) para o ESP32. Assim que ligar, ele enviará a calibração salva para o servidor local e começará o rastreamento em tempo real.
-2. Acesse a interface Web (seu link HTTPS do GitHub Pages ou arquivo local via *Live Server*).
-3. Faça o **upload da imagem da sua planta baixa**  diretamente na página web para alinhar os elementos visuais.
-4. Pronto! Veja a localização sendo atualizada no mapa em tempo real conforme o ESP32 se move pelo ambiente.
+### 4. The Floor Plan Mapper (Auxiliary Python Tool)
+A desktop application with a graphical interface (using `Tkinter` and `Pillow`) developed to generate your environment's coordinates. The user loads the floor plan image, clicks on the rooms to define physical locations, and the program automatically generates the JSON coordinates file.
 
 ---
 
-## 👨‍💻 Autor
-Desenvolvido por [Kauan Souto Goede](https://github.com/Kauan-Souto-Goede).
+## 🚀 Getting Started
 
-Contribuições, *issues* e *pull requests* são bem-vindos!
+Follow the order below to set up the complete ecosystem on your machine.
+
+### Prerequisites
+* An **ESP32** microcontroller.
+* [VS Code](https://code.visualstudio.com/) with the **PlatformIO** extension.
+* **Python 3.x** installed.
+* An MQTT Broker configured on your local network (e.g., Mosquitto).
+* An image (photo/file) of your floor plan.
+
+### Step 1: Map the Environment
+1. Navigate to the auxiliary mapping tool folder.
+2. Install the image dependency: `pip install Pillow`
+3. Run the program: `python gerador_de_coordenadas.py`
+4. Load your floor plan image, click on the mapped locations, and click **Salvar coordenadas.json**.
+5. **Attention:** Move or ensure that this `coordenadas.json` file is saved **in the same folder as the Python Backend Server**, as it will need to read this file to work correctly.
+
+### Step 2: Calibrate the ESP32 (Fingerprinting)
+1. Open the firmware folder in VS Code (PlatformIO).
+2. Configure your Wi-Fi credentials and local MQTT Broker in the firmware configuration file.
+3. Upload the **Calibration Code** to the ESP32.
+4. Place the ESP32 in the physical rooms corresponding to your map and let it collect signal samples. It will save the calibration internally on the board.
+
+### Step 3: Start the Secure Backend (Local)
+1. Navigate to the Python server folder (where you placed `coordenadas.json` in Step 1).
+2. Install the MQTT library and mathematical dependencies: `pip install paho-mqtt numpy` (adjust according to the libraries you are using).
+3. Run the server: `python backend_server.py`.
+4. Keep the terminal open. It will run locally, reading your coordinates and waiting for ESP32 data to calculate positions without exposing your MACs to the internet.
+
+### Step 4: Run the Tracker and Monitor on the Web
+1. Upload the **Main Code** (Tracker) to the ESP32. As soon as it turns on, it will send the saved calibration to the local server and start real-time tracking.
+2. Access the Web interface (your GitHub Pages HTTPS link or local file via *Live Server*).
+3. **Upload your floor plan image** and the `coordenadas.json` file directly on the web page to align the visual elements.
+4. Done! See the location being updated on the map in real-time as the ESP32 moves through the environment.
+
+---
+
+## 👨‍💻 Author
+Developed by [Kauan Souto Goede](https://github.com/Kauan-Souto-Goede).
+
+Contributions, *issues*, and *pull requests* are welcome!
