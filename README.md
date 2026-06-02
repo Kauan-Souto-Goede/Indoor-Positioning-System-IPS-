@@ -83,7 +83,6 @@ Indoor-Positioning-System-IPS/
 │   └── Planta.png                  # Planta baixa do ambiente
 │
 ├── index.html                      # Seletor de versão da interface
-├── .gitignore
 ├── LICENSE
 └── README.md
 ```
@@ -210,7 +209,6 @@ Indoor-Positioning-System-IPS/
 │   └── Planta.png
 │
 ├── index.html
-├── .gitignore
 ├── LICENSE
 └── README.md
 ```
