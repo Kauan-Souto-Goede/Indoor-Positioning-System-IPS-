@@ -4,12 +4,12 @@
 #include <LittleFS.h>
 
 // ─── Configurações ─────────────────────────────────────────────────────────────
-#define WIFI_SSID               "Bianca"
-#define WIFI_PASSWORD           "Kleber984152884"
+#define WIFI_SSID               "XXXXXXXX"
+#define WIFI_PASSWORD           "XXXXXXXX"
 #define MQTT_BROKER             "broker.hivemq.com"
 #define MQTT_PORT               1883
 #define MQTT_TOPIC_BRUTOS       "ufsc/engenharia/radar/dados_brutos"
-#define MQTT_TOPIC_CALIBRACAO   "ufsc/engenharia/radar/calibracao"   // ← novo
+#define MQTT_TOPIC_CALIBRACAO   "ufsc/engenharia/radar/calibracao"   
 #define MQTT_BUFFER_SIZE        8192   // aumentado para caber o JSON de calibração
 #define ARQUIVO_CALIBRACAO      "/calibracoes.json"
 
