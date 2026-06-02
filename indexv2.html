@@ -9,25 +9,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
   <style>
-    /* ── Tokens ──────────────────────────────────────────────────────── */
     :root {
-      --bg:        #080c10;
-      --surface:   #0d1520;
-      --border:    #1a2d45;
-      --accent:    #00d4ff;
-      --accent2:   #0066ff;
-      --danger:    #ff3c5a;
-      --ok:        #00e5a0;
-      --warn:      #ffb800;
-      --text:      #c8dff0;
-      --text-dim:  #4a6a88;
-      --mono:      'Share Tech Mono', monospace;
-      --sans:      'Exo 2', sans-serif;
-      --glow:      0 0 20px rgba(0, 212, 255, 0.35);
-      --glow-sm:   0 0 8px  rgba(0, 212, 255, 0.25);
+      --bg:       #080c10;
+      --surface:  #0d1520;
+      --border:   #1a2d45;
+      --accent:   #00d4ff;
+      --accent2:  #0066ff;
+      --danger:   #ff3c5a;
+      --ok:       #00e5a0;
+      --warn:     #ffb800;
+      --text:     #c8dff0;
+      --text-dim: #4a6a88;
+      --mono:     'Share Tech Mono', monospace;
+      --sans:     'Exo 2', sans-serif;
+      --glow:     0 0 20px rgba(0,212,255,.35);
     }
 
-    /* ── Reset ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -41,398 +38,229 @@
       padding: 24px 16px 40px;
       background-image:
         radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,102,255,.18), transparent),
-        repeating-linear-gradient(0deg,   transparent, transparent 39px, rgba(0,212,255,.04) 40px),
-        repeating-linear-gradient(90deg,  transparent, transparent 39px, rgba(0,212,255,.04) 40px);
+        repeating-linear-gradient(0deg,  transparent, transparent 39px, rgba(0,212,255,.04) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,212,255,.04) 40px);
     }
 
-    /* ── Header ─────────────────────────────────────────────────────── */
+    /* ── Header ── */
     header {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      padding-bottom: 16px;
+      width: 100%; max-width: 900px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding-bottom: 16px;
       border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 12px;
     }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-icon {
-      width: 38px;
-      height: 38px;
-      position: relative;
-      flex-shrink: 0;
-    }
-
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 38px; height: 38px; flex-shrink: 0; }
     .logo-icon svg { width: 100%; height: 100%; }
+    .logo-text h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #fff; }
+    .logo-text p  { font-family: var(--mono); font-size: .65rem; color: var(--text-dim); letter-spacing: .08em; }
 
-    .logo-text h1 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: #fff;
+    /* Upload button inline no header */
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    #upload-label {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .06em;
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-dim); cursor: pointer;
+      transition: border-color .3s, color .3s;
     }
+    #upload-label:hover { border-color: var(--accent); color: var(--accent); }
+    #upload-label svg { width: 13px; height: 13px; flex-shrink: 0; }
+    #img-upload { display: none; }
 
-    .logo-text p {
-      font-family: var(--mono);
-      font-size: .65rem;
-      color: var(--text-dim);
-      letter-spacing: .08em;
-    }
-
-    /* Connection pill */
     #conn-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: .72rem;
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      letter-spacing: .06em;
-      transition: border-color .4s, color .4s;
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: .72rem;
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface);
+      letter-spacing: .06em; transition: border-color .4s, color .4s;
     }
-
     #conn-pill .led {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--warn);
-      box-shadow: 0 0 6px var(--warn);
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--warn); box-shadow: 0 0 6px var(--warn);
       animation: blink 1.2s ease-in-out infinite;
     }
-
-    #conn-pill.online  { border-color: var(--ok);     color: var(--ok); }
-    #conn-pill.online  .led { background: var(--ok);  box-shadow: 0 0 8px var(--ok); animation: none; }
-    #conn-pill.offline { border-color: var(--danger);  color: var(--danger); }
+    #conn-pill.online  { border-color: var(--ok);    color: var(--ok); }
+    #conn-pill.online  .led { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: none; }
+    #conn-pill.offline { border-color: var(--danger); color: var(--danger); }
     #conn-pill.offline .led { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-    /* ── Main layout ─────────────────────────────────────────────────── */
+    /* ── Layout ── */
     .main {
-      width: 100%;
-      max-width: 900px;
-      display: grid;
-      grid-template-columns: 1fr 260px;
-      gap: 20px;
-      align-items: start;
+      width: 100%; max-width: 900px;
+      display: grid; grid-template-columns: 1fr 260px;
+      gap: 20px; align-items: start;
     }
 
-    /* ── Map panel ───────────────────────────────────────────────────── */
+    /* ── Mapa ── */
     .map-panel {
       position: relative;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      background: var(--surface);
+      border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; background: var(--surface);
       box-shadow: var(--glow), inset 0 0 60px rgba(0,0,0,.4);
     }
-
     .map-panel::before {
-      content: '';
-      position: absolute;
-      inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: linear-gradient(135deg, rgba(0,212,255,.04) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 1;
+      pointer-events: none; z-index: 1;
+    }
+
+    /* ★ Wrapper mantém proporção real da imagem sem JS bloqueante */
+    #map-inner {
+      position: relative;
+      width: 100%;
+      padding-top: 112%; /* sobrescrito por JS após load */
     }
 
     #floorplan {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: fill;   /* preenche exatamente → coordenadas % sempre corretas */
+      opacity: .88;
       display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 500/560;
-      object-fit: cover;
-      opacity: .85;
+      transition: opacity .4s;
     }
 
-    /* Tracker dot */
+    /* Dot */
     #dot {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 20px; height: 20px;
       transform: translate(-50%, -50%);
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       z-index: 10;
-      transition: top 1s cubic-bezier(.4,0,.2,1), left 1s cubic-bezier(.4,0,.2,1);
+      opacity: 0;
+      transition: top 1s cubic-bezier(.4,0,.2,1), left 1s cubic-bezier(.4,0,.2,1), opacity .4s;
     }
-
+    #dot.visible { opacity: 1; }
     #dot::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: var(--accent);
+      content: ''; position: absolute; inset: 0;
+      border-radius: 50%; background: var(--accent);
       box-shadow: 0 0 0 3px rgba(0,212,255,.3), 0 0 20px var(--accent);
     }
-
     #dot::after {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      border: 1.5px solid var(--accent);
-      opacity: .5;
-      animation: ripple 2s ease-out infinite;
+      content: ''; position: absolute; inset: -8px;
+      border-radius: 50%; border: 1.5px solid var(--accent);
+      opacity: .5; animation: ripple 2s ease-out infinite;
     }
-
     @keyframes ripple {
       0%   { inset: -4px;  opacity: .7; }
       100% { inset: -18px; opacity: 0; }
     }
 
-    /* Location label attached to dot */
     #dot-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(14px, -50%);
-      white-space: nowrap;
-      font-family: var(--mono);
-      font-size: .65rem;
-      color: var(--accent);
-      background: rgba(8,12,16,.85);
-      padding: 3px 8px;
-      border-radius: 4px;
+      white-space: nowrap; font-family: var(--mono); font-size: .65rem;
+      color: var(--accent); background: rgba(8,12,16,.85);
+      padding: 3px 8px; border-radius: 4px;
       border: 1px solid rgba(0,212,255,.3);
       pointer-events: none;
-      opacity: 0;
-      transition: opacity .4s;
     }
 
-    #dot:hover #dot-label,
-    #dot.visible #dot-label { opacity: 1; }
-
-    /* Map corner badge */
     .map-badge {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      font-family: var(--mono);
-      font-size: .6rem;
-      color: var(--text-dim);
-      letter-spacing: .06em;
-      z-index: 5;
+      position: absolute; bottom: 12px; left: 12px;
+      font-family: var(--mono); font-size: .6rem;
+      color: var(--text-dim); letter-spacing: .06em; z-index: 5;
     }
 
-    /* ── Side panel ──────────────────────────────────────────────────── */
-    .side { display: flex; flex-direction: column; gap: 16px; }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
-    }
-
-    .card-title {
-      font-family: var(--mono);
-      font-size: .62rem;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 14px;
-    }
-
-    /* Location card */
-    #location-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 4px;
-      min-height: 1.6rem;
-      transition: opacity .3s;
-    }
-
-    #location-sub {
-      font-family: var(--mono);
-      font-size: .68rem;
-      color: var(--text-dim);
-    }
-
-    /* Coords */
-    .coords-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .coord-box {
-      flex: 1;
-      background: rgba(0,0,0,.3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-    }
-
-    .coord-box .label {
-      font-family: var(--mono);
-      font-size: .55rem;
-      color: var(--text-dim);
-      letter-spacing: .1em;
-    }
-
-    .coord-box .value {
-      font-family: var(--mono);
-      font-size: 1.05rem;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    /* Confidence bar */
-    .conf-wrap { margin-top: 14px; }
-
-    .conf-label-row {
-      display: flex;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: .6rem;
-      color: var(--text-dim);
-      margin-bottom: 6px;
-    }
-
-    .conf-track {
-      height: 4px;
-      background: rgba(255,255,255,.06);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .conf-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 2px;
-      background: linear-gradient(90deg, var(--accent2), var(--accent));
-      transition: width .8s cubic-bezier(.4,0,.2,1);
-    }
-
-    /* History list */
-    #history-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-
-    #history-list::-webkit-scrollbar { width: 3px; }
-    #history-list::-webkit-scrollbar-track { background: transparent; }
-    #history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    #history-list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: .65rem;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: rgba(0,0,0,.25);
-      border: 1px solid transparent;
-      transition: border-color .3s;
-    }
-
-    #history-list li:first-child {
-      border-color: rgba(0,212,255,.25);
-      color: #fff;
-    }
-
-    #history-list li .ts { color: var(--text-dim); font-size: .58rem; }
-
-    /* Stats row */
-    .stats-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .stat-box {
-      flex: 1;
-      background: rgba(0,0,0,.3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      text-align: center;
-    }
-
-    .stat-box .s-label {
-      font-family: var(--mono);
-      font-size: .55rem;
-      color: var(--text-dim);
-      letter-spacing: .08em;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .stat-box .s-value {
-      font-family: var(--mono);
-      font-size: 1.1rem;
-      color: #fff;
-      font-weight: 600;
-    }
-
-    /* ── Scan animation overlay ──────────────────────────────────────── */
+    /* Scan rings */
     #scan-ring {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; inset: 0;
+      pointer-events: none; z-index: 3;
+      display: flex; align-items: center; justify-content: center;
     }
-
     .ring {
-      position: absolute;
-      border: 1px solid rgba(0,212,255,.15);
-      border-radius: 50%;
-      animation: expand 3s ease-out infinite;
+      position: absolute; border: 1px solid rgba(0,212,255,.15);
+      border-radius: 50%; animation: expand 3s ease-out infinite;
     }
     .ring:nth-child(2) { animation-delay: 1s; }
     .ring:nth-child(3) { animation-delay: 2s; }
-
     @keyframes expand {
       0%   { width: 40px;  height: 40px;  opacity: .6; }
       100% { width: 300px; height: 300px; opacity: 0; }
     }
 
-    /* ── Toast notification ──────────────────────────────────────────── */
+    /* ── Side ── */
+    .side { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+    }
+    .card-title {
+      font-family: var(--mono); font-size: .62rem;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 14px;
+    }
+
+    #location-name {
+      font-size: 1.3rem; font-weight: 700; color: #fff;
+      margin-bottom: 4px; min-height: 1.6rem; transition: opacity .3s;
+    }
+    #location-sub { font-family: var(--mono); font-size: .68rem; color: var(--text-dim); }
+
+    .coords-row { display: flex; gap: 10px; margin-top: 14px; }
+    .coord-box {
+      flex: 1; background: rgba(0,0,0,.3);
+      border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    }
+    .coord-box .label { font-family: var(--mono); font-size: .55rem; color: var(--text-dim); letter-spacing: .1em; }
+    .coord-box .value { font-family: var(--mono); font-size: 1.05rem; color: var(--accent); font-weight: 600; }
+
+    .conf-wrap { margin-top: 14px; }
+    .conf-label-row {
+      display: flex; justify-content: space-between;
+      font-family: var(--mono); font-size: .6rem; color: var(--text-dim); margin-bottom: 6px;
+    }
+    .conf-track { height: 4px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }
+    .conf-fill {
+      height: 100%; width: 0%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+
+    .stats-row { display: flex; gap: 10px; }
+    .stat-box {
+      flex: 1; background: rgba(0,0,0,.3);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; text-align: center;
+    }
+    .stat-box .s-label { font-family: var(--mono); font-size: .55rem; color: var(--text-dim); letter-spacing: .08em; display: block; margin-bottom: 4px; }
+    .stat-box .s-value { font-family: var(--mono); font-size: 1.1rem; color: #fff; font-weight: 600; }
+
+    #history-list {
+      list-style: none; display: flex; flex-direction: column;
+      gap: 6px; max-height: 180px; overflow-y: auto;
+    }
+    #history-list::-webkit-scrollbar { width: 3px; }
+    #history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    #history-list li {
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: var(--mono); font-size: .65rem;
+      padding: 6px 10px; border-radius: 6px;
+      background: rgba(0,0,0,.25); border: 1px solid transparent; transition: border-color .3s;
+    }
+    #history-list li:first-child { border-color: rgba(0,212,255,.25); color: #fff; }
+    #history-list li .ts { color: var(--text-dim); font-size: .58rem; }
+
+    /* ── Toast ── */
     #toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
+      position: fixed; bottom: 30px; left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--accent);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: .72rem;
-      padding: 10px 20px;
-      border-radius: 8px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .3s, transform .3s;
-      z-index: 100;
-      white-space: nowrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent); color: var(--text);
+      font-family: var(--mono); font-size: .72rem;
+      padding: 10px 20px; border-radius: 8px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s; z-index: 100; white-space: nowrap;
     }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 680px) {
       .main { grid-template-columns: 1fr; }
       .side { flex-direction: row; flex-wrap: wrap; }
@@ -442,7 +270,7 @@
 </head>
 <body>
 
-  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <!-- Header -->
   <header>
     <div class="logo">
       <div class="logo-icon">
@@ -451,55 +279,69 @@
           <circle cx="19" cy="19" r="12" stroke="#00d4ff" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
           <circle cx="19" cy="19" r="5"  fill="#00d4ff" opacity=".9"/>
           <circle cx="19" cy="19" r="2"  fill="#fff"/>
-          <line x1="1" y1="19" x2="8"  y2="19" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
+          <line x1="1"  y1="19" x2="8"  y2="19" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
           <line x1="30" y1="19" x2="37" y2="19" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
-          <line x1="19" y1="1" x2="19" y2="8"  stroke="#00d4ff" stroke-width="1" opacity=".4"/>
+          <line x1="19" y1="1"  x2="19" y2="8"  stroke="#00d4ff" stroke-width="1" opacity=".4"/>
           <line x1="19" y1="30" x2="19" y2="37" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
         </svg>
       </div>
       <div class="logo-text">
         <h1>Radar Indoor</h1>
-        <p>Wi-Fi FINGERPRINTING · POSICIONAMENTO</p>
+        <p>Wi-Fi Fingerprinting · Posicionamento</p>
       </div>
     </div>
 
-    <div id="conn-pill">
-      <span class="led"></span>
-      <span id="conn-text">Conectando...</span>
+    <div class="header-actions">
+      <!-- Upload da planta — sem recarregar a página -->
+      <label id="upload-label" for="img-upload" title="Trocar planta baixa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Trocar Planta
+      </label>
+      <input type="file" id="img-upload" accept="image/*" />
+
+      <div id="conn-pill">
+        <span class="led"></span>
+        <span id="conn-text">Conectando...</span>
+      </div>
     </div>
   </header>
 
-  <!-- ── Main ───────────────────────────────────────────────────────── -->
+  <!-- Main -->
   <div class="main">
 
     <!-- Mapa -->
     <div class="map-panel">
-      <img id="floorplan" src="Planta.png" alt="Planta Baixa">
+      <!-- ★ map-inner mantém aspect-ratio correto da imagem atual -->
+      <div id="map-inner">
+        <img id="floorplan" src="Planta.png" alt="Planta Baixa" />
 
-      <!-- Ondas de scan -->
-      <div id="scan-ring">
-        <div class="ring"></div>
-        <div class="ring"></div>
-        <div class="ring"></div>
+        <!-- Ondas de scan -->
+        <div id="scan-ring">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+        </div>
+
+        <!-- Marcador -->
+        <div id="dot">
+          <div id="dot-label">—</div>
+        </div>
+
+        <div class="map-badge">PLANTA · POSICIONAMENTO Wi-Fi</div>
       </div>
-
-      <!-- Marcador -->
-      <div id="dot" class="visible">
-        <div id="dot-label">—</div>
-      </div>
-
-      <div class="map-badge">PLANTA · ESCALA 1:1</div>
     </div>
 
-    <!-- Painel lateral -->
+    <!-- Lateral -->
     <div class="side">
 
-      <!-- Card de localização atual -->
       <div class="card">
         <div class="card-title">▸ Localização Atual</div>
         <div id="location-name">—</div>
         <div id="location-sub">Aguardando sinal...</div>
-
         <div class="coords-row">
           <div class="coord-box">
             <div class="label">COORD X</div>
@@ -510,7 +352,6 @@
             <div class="value" id="coord-y">—</div>
           </div>
         </div>
-
         <div class="conf-wrap">
           <div class="conf-label-row">
             <span>CONFIANÇA</span>
@@ -522,7 +363,6 @@
         </div>
       </div>
 
-      <!-- Stats -->
       <div class="card">
         <div class="card-title">▸ Estatísticas</div>
         <div class="stats-row">
@@ -537,7 +377,6 @@
         </div>
       </div>
 
-      <!-- Histórico -->
       <div class="card">
         <div class="card-title">▸ Histórico</div>
         <ul id="history-list">
@@ -548,48 +387,58 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast"></div>
 
-  <!-- ── Script ─────────────────────────────────────────────────────── -->
   <script>
-    // ─── Configuração MQTT ───────────────────────────────────────────────
     const CFG = {
-      broker:  "broker.hivemq.com",
-      port:    8884,
-      topic:   "ufsc/engenharia/radar/localizacao_final",
-      retryMs: 4000,
+      broker:      "broker.hivemq.com",
+      port:        8884,
+      topic:       "ufsc/engenharia/radar/localizacao_final",
+      retryMs:     4000,
+      confiancaMax: 80,   // dist. euclidiana máxima esperada (ajuste se necessário)
     };
 
-    // ─── Estado ──────────────────────────────────────────────────────────
-    const state = {
-      packets:      0,
-      uptimeSec:    0,
-      history:      [],        // [{ local, ts }]
-      maxHistory:   8,
-      confiancaMax: 80,        // distância euclidiana máxima esperada (para normalizar a barra)
-    };
+    const state = { packets: 0, uptimeSec: 0, history: [], maxHistory: 8 };
 
-    // ─── Elementos ───────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
     const el = {
-      pill:       $("conn-pill"),
-      pillText:   $("conn-text"),
-      dot:        $("dot"),
-      dotLabel:   $("dot-label"),
-      locName:    $("location-name"),
-      locSub:     $("location-sub"),
-      coordX:     $("coord-x"),
-      coordY:     $("coord-y"),
-      confFill:   $("conf-fill"),
-      confValue:  $("conf-value"),
-      packets:    $("stat-packets"),
-      uptime:     $("stat-uptime"),
-      history:    $("history-list"),
-      toast:      $("toast"),
+      pill:      $("conn-pill"), pillText: $("conn-text"),
+      dot:       $("dot"),       dotLabel: $("dot-label"),
+      mapInner:  $("map-inner"), floorplan: $("floorplan"),
+      locName:   $("location-name"), locSub: $("location-sub"),
+      coordX:    $("coord-x"),   coordY:   $("coord-y"),
+      confFill:  $("conf-fill"), confValue: $("conf-value"),
+      packets:   $("stat-packets"), uptime: $("stat-uptime"),
+      history:   $("history-list"), toast: $("toast"),
     };
 
-    // ─── Toast ────────────────────────────────────────────────────────────
+    // ── Ajusta proporção do mapa ao aspect-ratio real da imagem ──────────
+    function ajustarAspecto() {
+      const r = el.floorplan.naturalHeight / el.floorplan.naturalWidth;
+      if (r > 0) el.mapInner.style.paddingTop = (r * 100).toFixed(2) + "%";
+    }
+    el.floorplan.addEventListener("load", ajustarAspecto);
+    if (el.floorplan.complete) ajustarAspecto();
+
+    // ── Upload de nova planta sem recarregar ──────────────────────────────
+    $("img-upload").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
+      // Libera URL anterior se houver
+      if (el.floorplan._blobUrl) URL.revokeObjectURL(el.floorplan._blobUrl);
+      const url = URL.createObjectURL(file);
+      el.floorplan._blobUrl = url;
+      el.floorplan.style.opacity = "0";
+      el.floorplan.src = url;
+      el.floorplan.addEventListener("load", () => {
+        el.floorplan.style.opacity = ".88";
+        showToast("Planta carregada: " + file.name);
+      }, { once: true });
+      // Reseta posição do dot pois as coordenadas do novo mapa podem diferir
+      el.dot.classList.remove("visible");
+    });
+
+    // ── Toast ─────────────────────────────────────────────────────────────
     let toastTimer;
     function showToast(msg) {
       el.toast.textContent = msg;
@@ -598,7 +447,7 @@
       toastTimer = setTimeout(() => el.toast.classList.remove("show"), 3000);
     }
 
-    // ─── Uptime counter ───────────────────────────────────────────────────
+    // ── Uptime ────────────────────────────────────────────────────────────
     setInterval(() => {
       state.uptimeSec++;
       const h = Math.floor(state.uptimeSec / 3600);
@@ -606,76 +455,58 @@
       const s = state.uptimeSec % 60;
       el.uptime.textContent = h > 0
         ? `${h}h${String(m).padStart(2,"0")}m`
-        : m > 0
-          ? `${m}m${String(s).padStart(2,"0")}s`
-          : `${s}s`;
+        : m > 0 ? `${m}m${String(s).padStart(2,"0")}s` : `${s}s`;
     }, 1000);
 
-    // ─── Atualiza UI com nova posição ─────────────────────────────────────
-    function atualizarPosicao(dados) {
-      const { local, x, y, confianca } = dados;
+    // ── Atualiza UI ───────────────────────────────────────────────────────
+    function atualizarPosicao(d) {
+      const { local, x, y, confianca } = d;
       state.packets++;
 
-      // Dot
-      el.dot.style.left  = x + "%";
-      el.dot.style.top   = y + "%";
+      el.dot.style.left = x + "%";
+      el.dot.style.top  = y + "%";
+      el.dot.classList.add("visible");
       el.dotLabel.textContent = local;
 
-      // Localização
       el.locName.textContent = local;
       el.coordX.textContent  = x;
       el.coordY.textContent  = y;
+      el.packets.textContent = state.packets;
 
-      // Confiança (distância euclidiana invertida: menor = mais confiante)
       if (confianca !== undefined) {
-        // Quanto menor a distância, maior a confiança
-        const pct = Math.max(0, Math.min(100, (1 - confianca / state.confiancaMax) * 100));
-        el.confFill.style.width = pct.toFixed(1) + "%";
-        el.confValue.textContent = pct.toFixed(0) + "%";
-
+        const pct = Math.max(0, Math.min(100, (1 - confianca / CFG.confiancaMax) * 100));
+        el.confFill.style.width      = pct.toFixed(1) + "%";
+        el.confValue.textContent     = pct.toFixed(0) + "%";
+        el.locSub.textContent        = `dist. euclidiana: ${confianca.toFixed(1)}`;
         const cor = pct > 65 ? "var(--ok)" : pct > 35 ? "var(--warn)" : "var(--danger)";
         el.confFill.style.background = `linear-gradient(90deg, var(--accent2), ${cor})`;
-        el.locSub.textContent = `dist. euclidiana: ${confianca.toFixed(1)}`;
       } else {
         el.locSub.textContent = `x=${x}  y=${y}`;
       }
 
-      el.packets.textContent = state.packets;
-
-      // Histórico
-      const agora = new Date();
-      const ts = `${String(agora.getHours()).padStart(2,"0")}:${String(agora.getMinutes()).padStart(2,"0")}:${String(agora.getSeconds()).padStart(2,"0")}`;
-
-      // Só adiciona ao histórico se mudou de local
       const ultimo = state.history[0];
       if (!ultimo || ultimo.local !== local) {
+        const agora = new Date();
+        const ts = [agora.getHours(), agora.getMinutes(), agora.getSeconds()]
+          .map(n => String(n).padStart(2,"0")).join(":");
         state.history.unshift({ local, ts });
         if (state.history.length > state.maxHistory) state.history.pop();
-        renderHistory();
+        el.history.innerHTML = state.history.map(item =>
+          `<li><span>${item.local}</span><span class="ts">${item.ts}</span></li>`
+        ).join("");
       }
     }
 
-    function renderHistory() {
-      el.history.innerHTML = state.history.map((item, i) => `
-        <li>
-          <span>${item.local}</span>
-          <span class="ts">${item.ts}</span>
-        </li>
-      `).join("");
-    }
-
-    // ─── MQTT ─────────────────────────────────────────────────────────────
+    // ── MQTT ─────────────────────────────────────────────────────────────
     const clientId = "web_" + Math.random().toString(36).slice(2, 10);
     const client   = new Paho.MQTT.Client(CFG.broker, CFG.port, "/mqtt", clientId);
 
-    function setStatus(estado) {
-      el.pill.className = ""; // reset
-      el.pill.classList.add(estado);
-      const labels = { online: "Online", offline: "Offline", connecting: "Conectando..." };
-      el.pillText.textContent = labels[estado] ?? estado;
+    function setStatus(s) {
+      el.pill.className = s;
+      el.pillText.textContent = { online: "Online", offline: "Offline", connecting: "Conectando..." }[s] ?? s;
     }
 
-    client.onConnectionLost = resp => {
+    client.onConnectionLost = () => {
       setStatus("offline");
       showToast("Conexão perdida — reconectando...");
       setTimeout(conectar, CFG.retryMs);
@@ -683,20 +514,15 @@
 
     client.onMessageArrived = msg => {
       try {
-        const dados = JSON.parse(msg.payloadString);
-        if (dados.local && dados.x !== undefined && dados.y !== undefined) {
-          atualizarPosicao(dados);
-        }
-      } catch (e) {
-        console.error("[MQTT] Payload inválido:", msg.payloadString, e);
-      }
+        const d = JSON.parse(msg.payloadString);
+        if (d.local && d.x !== undefined && d.y !== undefined) atualizarPosicao(d);
+      } catch (e) { console.error("[MQTT] Payload inválido:", e); }
     };
 
     function conectar() {
       setStatus("connecting");
       client.connect({
-        useSSL: true,
-        timeout: 10,
+        useSSL: true, timeout: 10,
         onSuccess: () => {
           setStatus("online");
           client.subscribe(CFG.topic);
@@ -704,7 +530,7 @@
         },
         onFailure: err => {
           setStatus("offline");
-          showToast(`Falha na conexão (${err.errorMessage})`);
+          showToast(`Falha (${err.errorMessage})`);
           setTimeout(conectar, CFG.retryMs);
         },
       });
