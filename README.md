@@ -18,13 +18,14 @@ O microcontrolador atua como o "sensor" do ambiente. O firmware foi dividido em 
 ### 2. O Servidor Backend (Python)
 É o "cérebro" do sistema que recebe os dados do ESP32 via MQTT, executa os cálculos de trilateração/probabilidade e publica as coordenadas (X, Y) calculadas para o frontend. 
 * 🔒 **Foco em Privacidade:** O backend foi projetado para rodar **exclusivamente de forma local** (offline/fora da nuvem). Essa é uma medida de segurança rigorosa para evitar que os MAC Addresses da sua rede, de dispositivos vizinhos e de equipamentos ao redor fiquem expostos na internet.
+* **Leitura Espacial:** O servidor consome o arquivo `coordenadas.json` (gerado pelo mapeador) para entender a disposição física do ambiente antes de calcular a posição final.
 
 ### 3. A Interface Web (HTML / CSS / JS)
 É a "parte bonita" do projeto. Um site estático (hospedado em HTTPS via GitHub Pages ou rodando localmente) que se conecta ao broker MQTT via WebSockets.
 * **Upload Dinâmico da Planta Baixa:** Para utilizar a interface, é necessário ter uma imagem da sua planta baixa (PNG, JPG, etc.). Por flexibilidade, a imagem não fica presa no código-fonte; a própria interface permite que você faça o upload da imagem da planta e do arquivo de coordenadas no navegador toda vez que for utilizar a ferramenta.
 
 ### 4. O Mapeador de Planta Baixa (Ferramenta Auxiliar em Python)
-Uma aplicação desktop com interface gráfica (usando `Tkinter` e `Pillow`) desenvolvida para gerar as coordenadas do seu ambiente. O usuário carrega a imagem da planta baixa, clica nos cômodos para definir as localizações físicas e o programa gera automaticamente o arquivo `coordenadas.json` consumido pelo site.
+Uma aplicação desktop com interface gráfica (usando `Tkinter` e `Pillow`) desenvolvida para gerar as coordenadas do seu ambiente. O usuário carrega a imagem da planta baixa, clica nos cômodos para definir as localizações físicas e o programa gera automaticamente o arquivo JSON de coordenadas.
 
 ---
 
@@ -40,10 +41,11 @@ Siga a ordem abaixo para configurar o ecossistema completo na sua máquina.
 * Uma imagem (foto/arquivo) da sua planta baixa.
 
 ### Passo 1: Mapear o Ambiente
-1. Navegue até a pasta da ferramenta auxiliar.
+1. Navegue até a pasta da ferramenta auxiliar de mapeamento.
 2. Instale a dependência de imagem: `pip install Pillow`
 3. Rode o programa: `python gerador_de_coordenadas.py`
-4. Carregue a imagem da sua planta baixa, clique nos locais mapeados e clique em **Salvar coordenadas.json**. Você usará esse arquivo mais tarde.
+4. Carregue a imagem da sua planta baixa, clique nos locais mapeados e clique em **Salvar coordenadas.json**.
+5. **Atenção:** Mova ou certifique-se de que este arquivo `coordenadas.json` seja salvo **na mesma pasta do Servidor Backend em Python**, pois ele precisará ler esse arquivo para funcionar corretamente.
 
 ### Passo 2: Calibrar o ESP32 (Fingerprinting)
 1. Abra a pasta do firmware no VS Code (PlatformIO).
@@ -52,15 +54,15 @@ Siga a ordem abaixo para configurar o ecossistema completo na sua máquina.
 4. Posicione o ESP32 nos cômodos físicos correspondentes ao seu mapa e deixe-o coletar as amostras de sinal. Ele salvará a calibração internamente na placa.
 
 ### Passo 3: Iniciar o Backend Seguro (Local)
-1. Navegue até a pasta do servidor Python.
+1. Navegue até a pasta do servidor Python (onde você colocou o `coordenadas.json` no Passo 1).
 2. Instale a biblioteca do MQTT e dependências matemáticas: `pip install paho-mqtt numpy` (ajuste conforme as bibliotecas que estiver usando).
 3. Execute o servidor: `python backend_server.py`.
-4. Mantenha o terminal aberto. Ele rodará localmente, aguardando os dados do ESP32 para calcular as posições sem expor seus MACs na internet.
+4. Mantenha o terminal aberto. Ele rodará localmente, lendo suas coordenadas e aguardando os dados do ESP32 para calcular as posições sem expor seus MACs na internet.
 
 ### Passo 4: Rodar o Tracker e Monitorar na Web
 1. Faça o upload do **Código Principal** (Tracker) para o ESP32. Assim que ligar, ele enviará a calibração salva para o servidor local e começará o rastreamento em tempo real.
 2. Acesse a interface Web (seu link HTTPS do GitHub Pages ou arquivo local via *Live Server*).
-3. Faça o **upload da imagem da sua planta baixa** e do arquivo `coordenadas.json` diretamente na página web.
+3. Faça o **upload da imagem da sua planta baixa**  diretamente na página web para alinhar os elementos visuais.
 4. Pronto! Veja a localização sendo atualizada no mapa em tempo real conforme o ESP32 se move pelo ambiente.
 
 ---
