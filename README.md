@@ -138,6 +138,13 @@ Contribuições, *issues* e *pull requests* são bem-vindos!
 
 **Real-time indoor positioning using ESP32 + MQTT + Python**
 
+[![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-E55A2B?logo=espressif\&logoColor=white)](https://platformio.org)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python\&logoColor=white)](https://python.org)
+[![MQTT](https://img.shields.io/badge/MQTT-HiveMQ-6B00B6)](https://www.hivemq.com)
+[![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
+
+</div>
+
 ---
 
 ## How it works
